@@ -16,8 +16,8 @@ plugins {
     alias(libs.plugins.dokka)
 }
 
-group = "dev.muazkadan"
-version = "0.0.6"
+group = "com.seekrtech"
+version = "0.0.6.1_alpha"
 kotlin {
     androidTarget {
         publishLibraryVariants("release")
@@ -65,7 +65,7 @@ kotlin {
 }
 
 android {
-    namespace = "dev.muazkadan.rivecmp"
+    namespace = "com.seekrtech.rivecmp"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -77,18 +77,28 @@ android {
 }
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    // Publish to GitHub Packages instead of Maven Central
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/seekrtech/Rive-CMP-Seekrtech")
+            credentials {
+                username = project.findProperty("GITHUB_USERNAME") as String? ?: System.getenv("GITHUB_USERNAME")
+                password = project.findProperty("GITHUB_TOKEN") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 
     signAllPublications()
 
-    coordinates(group.toString(), "rive-cmp", version.toString())
+    coordinates(group.toString(), "rive-cmp-seekrtech", version.toString())
 
     pom {
-        name = "Rive CMP"
+        name = "Rive CMP Seekrtech"
         description =
-            "A Compose Multiplatform wrapper library for integrating Rive animations, providing a unified API to use rive-android and rive-ios seamlessly across Android and iOS platforms."
+            "A Compose Multiplatform wrapper library for integrating Rive animations, providing a unified API to use rive-android and rive-ios seamlessly across Android and iOS platforms. Forked and maintained by Seekrtech."
         inceptionYear = "2025"
-        url = "https://github.com/muazkadan/Rive-CMP"
+        url = "https://github.com/seekrtech/Rive-CMP-Seekrtech"
         licenses {
             license {
                 name = "The Apache License, Version 2.0"
@@ -97,16 +107,15 @@ mavenPublishing {
         }
         developers {
             developer {
-                id = "muazkadan"
-                name = "Muaz KADAN"
-                url = "https://muazkadan.dev/"
-                email = "muaz.kadan@gmail.com"
+                id = "seekrtech"
+                name = "Seekrtech"
+                url = "https://github.com/seekrtech"
             }
         }
         scm {
-            url = "https://github.com/muazkadan/Rive-CMP"
-            connection = "scm:git:git://github.com/muazkadan/Rive-CMP.git"
-            developerConnection = "scm:git:ssh://github.com/muazkadan/Rive-CMP.git"
+            url = "https://github.com/seekrtech/Rive-CMP-Seekrtech"
+            connection = "scm:git:git://github.com/seekrtech/Rive-CMP-Seekrtech.git"
+            developerConnection = "scm:git:ssh://github.com/seekrtech/Rive-CMP-Seekrtech.git"
         }
     }
 }
