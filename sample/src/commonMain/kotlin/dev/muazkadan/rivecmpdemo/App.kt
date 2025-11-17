@@ -48,12 +48,30 @@ private const val MAX_SWIPE_OFFSET_FACTOR = 1.3f
 @Composable
 @Preview
 fun App() {
+    var showCallbackTest by remember { mutableStateOf(false) }
+    
     MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color(0xFF001C1C)
         ) {
-            CustomPullRefreshSample(height = 200f)
+            if (showCallbackTest) {
+                dev.CallbackTestScreen(onBack = { showCallbackTest = false })
+            } else {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    CustomPullRefreshSample(height = 200f)
+                    
+                    // Toggle button
+                    androidx.compose.material3.FloatingActionButton(
+                        onClick = { showCallbackTest = !showCallbackTest },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                    ) {
+                        Text("Test")
+                    }
+                }
+            }
         }
     }
 }

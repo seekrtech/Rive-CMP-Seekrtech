@@ -1,10 +1,11 @@
 @file:OptIn(ExperimentalSpmForKmpFeature::class)
 
-import com.vanniktech.maven.publish.SonatypeHost
 import io.github.frankois944.spmForKmp.utils.ExperimentalSpmForKmpFeature
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
+import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -14,16 +15,24 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.spmForKmp)
     alias(libs.plugins.dokka)
+    `maven-publish`
 }
 
-group = "dev.muazkadan"
-version = "0.0.6"
+// Load local.properties
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+
+group = "com.seekrtech"
+version = "0.0.6.3_alpha"
 kotlin {
     androidTarget {
         publishLibraryVariants("release")
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.JVM_17)
         }
     }
     listOf(
@@ -65,30 +74,45 @@ kotlin {
 }
 
 android {
-    namespace = "dev.muazkadan.rivecmp"
+    namespace = "com.seekrtech.rivecmp"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/seekrtech/Rive-CMP-Seekrtech")
+            credentials {
+                username = localProperties.getProperty("GITHUB_USERNAME")
+                    ?: project.findProperty("GITHUB_USERNAME") as String? 
+                    ?: project.findProperty("gpr.user") as String? 
+                    ?: System.getenv("GITHUB_USERNAME")
+                password = localProperties.getProperty("GITHUB_TOKEN")
+                    ?: project.findProperty("GITHUB_TOKEN") as String? 
+                    ?: project.findProperty("gpr.token") as String? 
+                    ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
     }
 }
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
-
-    signAllPublications()
-
-    coordinates(group.toString(), "rive-cmp", version.toString())
+    coordinates(group.toString(), "rive-cmp-seekrtech", version.toString())
 
     pom {
-        name = "Rive CMP"
+        name = "Rive CMP Seekrtech"
         description =
-            "A Compose Multiplatform wrapper library for integrating Rive animations, providing a unified API to use rive-android and rive-ios seamlessly across Android and iOS platforms."
+            "A Compose Multiplatform wrapper library for integrating Rive animations, providing a unified API to use rive-android and rive-ios seamlessly across Android and iOS platforms. Forked and maintained by Seekrtech."
         inceptionYear = "2025"
-        url = "https://github.com/muazkadan/Rive-CMP"
+        url = "https://github.com/seekrtech/Rive-CMP-Seekrtech"
         licenses {
             license {
                 name = "The Apache License, Version 2.0"
@@ -97,16 +121,15 @@ mavenPublishing {
         }
         developers {
             developer {
-                id = "muazkadan"
-                name = "Muaz KADAN"
-                url = "https://muazkadan.dev/"
-                email = "muaz.kadan@gmail.com"
+                id = "seekrtech"
+                name = "Seekrtech"
+                url = "https://github.com/seekrtech"
             }
         }
         scm {
-            url = "https://github.com/muazkadan/Rive-CMP"
-            connection = "scm:git:git://github.com/muazkadan/Rive-CMP.git"
-            developerConnection = "scm:git:ssh://github.com/muazkadan/Rive-CMP.git"
+            url = "https://github.com/seekrtech/Rive-CMP-Seekrtech"
+            connection = "scm:git:git://github.com/seekrtech/Rive-CMP-Seekrtech.git"
+            developerConnection = "scm:git:ssh://github.com/seekrtech/Rive-CMP-Seekrtech.git"
         }
     }
 }
@@ -120,7 +143,7 @@ swiftPackageConfig {
         dependency {
             remotePackageVersion(
                 url = URI("https://github.com/rive-app/rive-ios.git"),
-                version = "6.10.0",
+                version = "6.11.1",
                 products = {
                     add("RiveRuntime")
                 },

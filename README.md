@@ -1,7 +1,6 @@
-# Rive CMP
+# Rive CMP - Seekrtech Fork
 
-![Maven Central Version](https://img.shields.io/maven-central/v/dev.muazkadan/rive-cmp)
-[![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=21)
+[![API](https://img.shields.io/badge/API-24%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=24)
 [![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin-Multiplatform-blue.svg)](https://kotlinlang.org/docs/multiplatform.html)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 <img alt="Platform Android" src="https://img.shields.io/badge/Platform-Android-brightgreen"/>
@@ -9,6 +8,8 @@
 
 A Compose Multiplatform wrapper library for integrating Rive animations, providing a unified API to
 use rive-android and rive-ios seamlessly across Android and iOS platforms.
+
+**This is a fork maintained by Seekrtech with custom modifications and improvements.**
 
 <img src="images/banner.png" alt="Rive CMP Banner"></img>
 
@@ -42,13 +43,44 @@ use rive-android and rive-ios seamlessly across Android and iOS platforms.
 
 ## Installation
 
+### Prerequisites
+
+To use this library from GitHub Packages, you need to authenticate with GitHub. Add the following to your `settings.gradle.kts`:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url = uri("https://maven.pkg.github.com/seekrtech/Rive-CMP-Seekrtech")
+            credentials {
+                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
+                password = project.findProperty("gpr.token") as String? ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+```
+
+Add your GitHub credentials to `gradle.properties` or `local.properties`:
+
+```properties
+gpr.user=your-github-username
+gpr.token=your-github-personal-access-token
+```
+
+Or set environment variables:
+- `GITHUB_USERNAME`: Your GitHub username
+- `GITHUB_TOKEN`: Your GitHub Personal Access Token with `read:packages` permission
+
 ### Gradle (Kotlin Multiplatform)
 
 Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
 commonMain.dependencies {
-    implementation("dev.muazkadan:rive-cmp:0.0.5")
+    implementation("com.seekrtech:rive-cmp-seekrtech:0.0.6.1_alpha")
 }
 ```
 
@@ -56,7 +88,7 @@ commonMain.dependencies {
 
 ```kotlin
 dependencies {
-    implementation("dev.muazkadan:rive-cmp:0.0.5")
+    implementation("com.seekrtech:rive-cmp-seekrtech:0.0.6.1_alpha")
 }
 ```
 
@@ -66,10 +98,18 @@ Add to your `libs.versions.toml`:
 
 ```toml
 [versions]
-rive-cmp = "0.0.5"
+rive-cmp-seekrtech = "0.0.6.1_alpha"
 
 [libraries]
-rive-cmp = { module = "dev.muazkadan:rive-cmp", version.ref = "rive-cmp" }
+rive-cmp-seekrtech = { module = "com.seekrtech:rive-cmp-seekrtech", version.ref = "rive-cmp-seekrtech" }
+```
+
+Then use in your `build.gradle.kts`:
+
+```kotlin
+commonMain.dependencies {
+    implementation(libs.rive.cmp.seekrtech)
+}
 ```
 
 ## Android Initialization
@@ -304,6 +344,55 @@ This library uses Kotlin Multiplatform with the following plugins:
 # Build iOS Framework
 ./gradlew :library:linkReleaseFrameworkIosArm64
 ```
+
+## Publishing to GitHub Packages
+
+### Prerequisites
+
+1. Create a GitHub Personal Access Token with `write:packages` and `read:packages` permissions
+2. Set up your credentials in one of the following ways:
+
+**Option 1: Environment Variables** (Recommended for CI/CD)
+```bash
+export GITHUB_USERNAME=your-username
+export GITHUB_TOKEN=your-token
+```
+
+**Option 2: local.properties** (Recommended for local development)
+```properties
+GITHUB_USERNAME=your-username
+GITHUB_TOKEN=your-token
+```
+
+**Option 3: gradle.properties**
+```properties
+gpr.user=your-username
+gpr.token=your-token
+```
+
+### Publishing Manually
+
+Use the provided publish script:
+```bash
+./publish.sh
+```
+
+Or run the Gradle task directly:
+```bash
+./gradlew :library:publish
+```
+
+### Publishing via GitHub Actions
+
+The repository includes a GitHub Actions workflow that automatically publishes the library when you push a tag:
+
+```bash
+# Create and push a version tag
+git tag v0.0.6.1_alpha
+git push origin v0.0.6.1_alpha
+```
+
+Or manually trigger the workflow from the GitHub Actions tab.
 
 ## Contributing
 
