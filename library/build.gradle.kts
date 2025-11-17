@@ -1,10 +1,11 @@
 @file:OptIn(ExperimentalSpmForKmpFeature::class)
 
-import com.vanniktech.maven.publish.SonatypeHost
 import io.github.frankois944.spmForKmp.utils.ExperimentalSpmForKmpFeature
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.URI
+import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -14,16 +15,24 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.spmForKmp)
     alias(libs.plugins.dokka)
+    `maven-publish`
+}
+
+// Load local.properties
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
 }
 
 group = "com.seekrtech"
-version = "0.0.6.1_alpha"
+version = "0.0.6.3_alpha"
 kotlin {
     androidTarget {
         publishLibraryVariants("release")
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.JVM_17)
         }
     }
     listOf(
@@ -71,26 +80,31 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
-mavenPublishing {
-    // Publish to GitHub Packages instead of Maven Central
+publishing {
     repositories {
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/seekrtech/Rive-CMP-Seekrtech")
             credentials {
-                username = project.findProperty("GITHUB_USERNAME") as String? ?: System.getenv("GITHUB_USERNAME")
-                password = project.findProperty("GITHUB_TOKEN") as String? ?: System.getenv("GITHUB_TOKEN")
+                username = localProperties.getProperty("GITHUB_USERNAME")
+                    ?: project.findProperty("GITHUB_USERNAME") as String? 
+                    ?: project.findProperty("gpr.user") as String? 
+                    ?: System.getenv("GITHUB_USERNAME")
+                password = localProperties.getProperty("GITHUB_TOKEN")
+                    ?: project.findProperty("GITHUB_TOKEN") as String? 
+                    ?: project.findProperty("gpr.token") as String? 
+                    ?: System.getenv("GITHUB_TOKEN")
             }
         }
     }
+}
 
-    signAllPublications()
-
+mavenPublishing {
     coordinates(group.toString(), "rive-cmp-seekrtech", version.toString())
 
     pom {
@@ -129,7 +143,7 @@ swiftPackageConfig {
         dependency {
             remotePackageVersion(
                 url = URI("https://github.com/rive-app/rive-ios.git"),
-                version = "6.10.0",
+                version = "6.11.1",
                 products = {
                     add("RiveRuntime")
                 },
