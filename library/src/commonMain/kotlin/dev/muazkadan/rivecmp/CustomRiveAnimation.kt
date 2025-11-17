@@ -16,6 +16,8 @@ expect fun CustomRiveAnimation(
     artboardName: String? = null,
     fit: RiveFit = RiveFit.CONTAIN,
     stateMachineName: String? = null,
+    onStateChanged: ((stateMachineName: String, stateName: String) -> Unit)? = null,
+    onRiveEvent: ((eventName: String, properties: Map<String, Any>) -> Unit)? = null,
 )
 
 @ExperimentalRiveCmpApi
@@ -28,6 +30,8 @@ expect fun CustomRiveAnimation(
     artboardName: String? = null,
     fit: RiveFit = RiveFit.CONTAIN,
     stateMachineName: String? = null,
+    onStateChanged: ((stateMachineName: String, stateName: String) -> Unit)? = null,
+    onRiveEvent: ((eventName: String, properties: Map<String, Any>) -> Unit)? = null,
 )
 
 @ExperimentalRiveCmpApi
@@ -40,4 +44,6 @@ expect fun CustomRiveAnimation(
     artboardName: String? = null,
     fit: RiveFit = RiveFit.CONTAIN,
     stateMachineName: String? = null,
+    onStateChanged: ((stateMachineName: String, stateName: String) -> Unit)? = null,
+    onRiveEvent: ((eventName: String, properties: Map<String, Any>) -> Unit)? = null,
 )

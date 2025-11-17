@@ -5,10 +5,14 @@
 import Foundation
 import RiveRuntime
 
-@objcMembers public class RiveAnimationController: NSObject {
+@objcMembers public class RiveAnimationController: NSObject, RiveStateMachineDelegate {
     private var viewModel: RiveViewModel?
     private var riveView: RiveView?
     private var pendingConfiguration: (url: String, autoPlay: Bool, artboardName: String?, stateMachineName: String?, fit: RiveFit, alignment: RiveAlignment)?
+    
+    // Callback closures for Kotlin interop
+    public var onStateChanged: ((String?, String?) -> Void)?
+    public var onRiveEvent: ((String?, [String: Any]?) -> Void)?
 
     override init() {
         super.init()
@@ -106,6 +110,9 @@ import RiveRuntime
 
         riveView = vm.createRiveView()
         riveView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        
+        // Register this controller as the state machine delegate
+        riveView?.stateMachineDelegate = self
     }
 
     public func createAnimationView() -> UIView {
@@ -168,5 +175,39 @@ import RiveRuntime
 
     public func stop() {
         viewModel?.stop()
+    }
+    
+    // MARK: - RiveStateMachineDelegate
+    
+    public func stateMachine(_ stateMachine: RiveStateMachineInstance, didChangeState stateName: String) {
+        // Forward state change to Kotlin callback
+        onStateChanged?(stateMachine.name(), stateName)
+    }
+    
+    public func onRiveEventReceived(onRiveEvent riveEvent: RiveEvent) {
+        // Extract event properties
+        var properties: [String: Any] = [:]
+        
+        // Add event type
+        if let generalEvent = riveEvent as? RiveGeneralEvent {
+            properties["type"] = "general"
+            
+            // Add general event properties if available
+            if let eventProperties = generalEvent.properties() as? [String: Any] {
+                properties.merge(eventProperties) { (_, new) in new }
+            }
+        } else if let openUrlEvent = riveEvent as? RiveOpenUrlEvent {
+            properties["type"] = "openUrl"
+            properties["url"] = openUrlEvent.url()
+            properties["target"] = openUrlEvent.target()
+        } else {
+            properties["type"] = "unknown"
+        }
+        
+        // Add delay if available
+        properties["delay"] = riveEvent.delay()
+        
+        // Forward to Kotlin callback
+        self.onRiveEvent?(riveEvent.name(), properties)
     }
 }

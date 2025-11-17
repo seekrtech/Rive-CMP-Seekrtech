@@ -2,6 +2,7 @@ package dev.muazkadan.rivecmp
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
@@ -28,8 +29,16 @@ actual fun CustomRiveAnimation(
     autoPlay: Boolean,
     artboardName: String?,
     fit: RiveFit,
-    stateMachineName: String?
+    stateMachineName: String?,
+    onStateChanged: ((String, String) -> Unit)?,
+    onRiveEvent: ((String, Map<String, Any>) -> Unit)?
 ) {
+    // Set up callbacks when composition or callbacks change
+    LaunchedEffect(composition, onStateChanged, onRiveEvent) {
+        composition?.setOnStateChangedListener(onStateChanged)
+        composition?.setOnRiveEventListener(onRiveEvent)
+    }
+    
     if (composition != null) {
         when (val spec = composition.spec) {
             is RiveUrlCompositionSpec -> {
@@ -117,7 +126,9 @@ actual fun CustomRiveAnimation(
     autoPlay: Boolean,
     artboardName: String?,
     fit: RiveFit,
-    stateMachineName: String?
+    stateMachineName: String?,
+    onStateChanged: ((String, String) -> Unit)?,
+    onRiveEvent: ((String, Map<String, Any>) -> Unit)?
 ) {
     val animationController = remember(url, autoPlay, artboardName, fit, stateMachineName, alignment) {
         val controller = RiveAnimationController()
@@ -130,6 +141,22 @@ actual fun CustomRiveAnimation(
             alignment = alignment.toIosAlignment()
         )
         controller
+    }
+    
+    // Set up callbacks when controller or callbacks change
+    LaunchedEffect(animationController, onStateChanged, onRiveEvent) {
+        animationController.setOnStateChanged(onStateChanged?.let { callback ->
+            { stateMachineName: String?, stateName: String? ->
+                callback(stateMachineName ?: "", stateName ?: "")
+            }
+        })
+        animationController.setOnRiveEvent(onRiveEvent?.let { callback ->
+            { eventName: String?, properties: Map<*, *>? ->
+                @Suppress("UNCHECKED_CAST")
+                val kotlinMap = properties as? Map<String, Any> ?: emptyMap()
+                callback(eventName ?: "", kotlinMap)
+            }
+        })
     }
 
     DisposableEffect(Unit) {
@@ -160,7 +187,9 @@ actual fun CustomRiveAnimation(
     autoPlay: Boolean,
     artboardName: String?,
     fit: RiveFit,
-    stateMachineName: String?
+    stateMachineName: String?,
+    onStateChanged: ((String, String) -> Unit)?,
+    onRiveEvent: ((String, Map<String, Any>) -> Unit)?
 ) {
     val animationController = remember(byteArray, autoPlay, artboardName, fit, stateMachineName, alignment) {
         val controller = RiveAnimationController()
@@ -182,6 +211,22 @@ actual fun CustomRiveAnimation(
             alignment = alignment.toIosAlignment()
         )
         controller
+    }
+    
+    // Set up callbacks when controller or callbacks change
+    LaunchedEffect(animationController, onStateChanged, onRiveEvent) {
+        animationController.setOnStateChanged(onStateChanged?.let { callback ->
+            { stateMachineName: String?, stateName: String? ->
+                callback(stateMachineName ?: "", stateName ?: "")
+            }
+        })
+        animationController.setOnRiveEvent(onRiveEvent?.let { callback ->
+            { eventName: String?, properties: Map<*, *>? ->
+                @Suppress("UNCHECKED_CAST")
+                val kotlinMap = properties as? Map<String, Any> ?: emptyMap()
+                callback(eventName ?: "", kotlinMap)
+            }
+        })
     }
 
     DisposableEffect(Unit) {
