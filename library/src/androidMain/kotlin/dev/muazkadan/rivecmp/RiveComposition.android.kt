@@ -11,14 +11,19 @@ actual class RiveComposition internal actual constructor(
 ) {
     internal actual val spec: RiveCompositionSpec = spec
     private var animationViewRef: RiveAnimationView? = null
-    
+
     // Callback listeners
     private var onStateChangedCallback: ((stateMachineName: String, stateName: String) -> Unit)? = null
     private var onRiveEventCallback: ((eventName: String, properties: Map<String, Any>) -> Unit)? = null
-    
+    private var onViewModelReadyCallback: ((Any?) -> Unit)? = null
+
     // Current registered listeners
     private var currentStateListener: RiveFileController.Listener? = null
     private var currentEventListener: RiveFileController.RiveEventListener? = null
+
+    // ViewModel instance
+    private var viewModelInstance: Any? = null
+    private var viewModelInitialized = false
 
     actual fun setNumberInput(stateMachineName: String, name: String, value: Float) {
         animationViewRef?.setNumberState(
@@ -111,11 +116,29 @@ actual class RiveComposition internal actual constructor(
         }
     }
 
+    /**
+     * Set a listener for ViewModel ready callback
+     * @param listener Callback invoked when ViewModel instance is ready
+     */
+    fun setOnViewModelReadyListener(listener: ((Any?) -> Unit)?) {
+        onViewModelReadyCallback = listener
+
+        // If ViewModel is already initialized, invoke callback immediately
+        if (viewModelInitialized) {
+            listener?.invoke(viewModelInstance)
+        }
+    }
+
     internal actual fun connectToAnimationView(animationView: Any?) {
+        android.util.Log.d("RiveComposition", "connectToAnimationView called with: $animationView")
         animationViewRef = animationView as? RiveAnimationView
-        
+        android.util.Log.d("RiveComposition", "animationViewRef = $animationViewRef")
+
         // Set up callbacks when view is connected
         animationViewRef?.let { view ->
+            android.util.Log.d("RiveComposition", "Setting up callbacks, controller = ${view.controller}")
+            android.util.Log.d("RiveComposition", "controller.file = ${view.controller.file}")
+            android.util.Log.d("RiveComposition", "controller.activeArtboard = ${view.controller.activeArtboard}")
             // Set state change listener
             onStateChangedCallback?.let { callback ->
                 currentStateListener = object : RiveFileController.Listener {
@@ -129,7 +152,7 @@ actual class RiveComposition internal actual constructor(
                 }
                 currentStateListener?.let { view.registerListener(it) }
             }
-            
+
             // Set Rive event listener
             onRiveEventCallback?.let { callback ->
                 currentEventListener = object : RiveFileController.RiveEventListener {
@@ -143,6 +166,24 @@ actual class RiveComposition internal actual constructor(
                     }
                 }
                 currentEventListener?.let { view.addEventListener(it) }
+            }
+
+            // Initialize ViewModel if not already done
+            if (!viewModelInitialized && view.controller.file != null && view.controller.activeArtboard != null) {
+                android.util.Log.d("RiveComposition", "Initializing ViewModel from connectToAnimationView")
+                android.util.Log.d("RiveComposition", "controller.file = ${view.controller.file}")
+                android.util.Log.d("RiveComposition", "activeArtboard = ${view.controller.activeArtboard}")
+
+                val defaultViewModel = view.controller.file
+                    ?.defaultViewModelForArtboard(view.controller.activeArtboard!!)
+                android.util.Log.d("RiveComposition", "defaultViewModel = $defaultViewModel")
+
+                viewModelInstance = defaultViewModel?.createDefaultInstance()
+                android.util.Log.d("RiveComposition", "Created viewModelInstance = $viewModelInstance")
+
+                viewModelInitialized = true
+                onViewModelReadyCallback?.invoke(viewModelInstance)
+                android.util.Log.d("RiveComposition", "Invoked onViewModelReadyCallback")
             }
         }
     }

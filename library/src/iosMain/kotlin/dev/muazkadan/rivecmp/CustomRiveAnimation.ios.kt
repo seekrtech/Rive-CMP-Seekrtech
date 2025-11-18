@@ -31,7 +31,8 @@ actual fun CustomRiveAnimation(
     fit: RiveFit,
     stateMachineName: String?,
     onStateChanged: ((String, String) -> Unit)?,
-    onRiveEvent: ((String, Map<String, Any>) -> Unit)?
+    onRiveEvent: ((String, Map<String, Any>) -> Unit)?,
+    onViewModelReady: ((Any?) -> Unit)?
 ) {
     // Set up callbacks when composition or callbacks change
     LaunchedEffect(composition, onStateChanged, onRiveEvent) {
@@ -128,7 +129,8 @@ actual fun CustomRiveAnimation(
     fit: RiveFit,
     stateMachineName: String?,
     onStateChanged: ((String, String) -> Unit)?,
-    onRiveEvent: ((String, Map<String, Any>) -> Unit)?
+    onRiveEvent: ((String, Map<String, Any>) -> Unit)?,
+    onViewModelReady: ((Any?) -> Unit)?
 ) {
     val animationController = remember(url, autoPlay, artboardName, fit, stateMachineName, alignment) {
         val controller = RiveAnimationController()
@@ -142,7 +144,17 @@ actual fun CustomRiveAnimation(
         )
         controller
     }
-    
+
+    // Set up View Model if callback is provided
+    // The callback receives the RiveViewModel which can be used to call enableAutoBind
+    LaunchedEffect(animationController, onViewModelReady) {
+        onViewModelReady?.let { callback ->
+            animationController.viewModel()?.let { riveViewModel ->
+                callback(riveViewModel)
+            }
+        }
+    }
+
     // Set up callbacks when controller or callbacks change
     LaunchedEffect(animationController, onStateChanged, onRiveEvent) {
         animationController.setOnStateChanged(onStateChanged?.let { callback ->
@@ -189,8 +201,12 @@ actual fun CustomRiveAnimation(
     fit: RiveFit,
     stateMachineName: String?,
     onStateChanged: ((String, String) -> Unit)?,
-    onRiveEvent: ((String, Map<String, Any>) -> Unit)?
+    onRiveEvent: ((String, Map<String, Any>) -> Unit)?,
+    onViewModelReady: ((Any?) -> Unit)?,
+    assetLoader: Any?
 ) {
+    // Note: iOS asset loader support not implemented yet
+    // assetLoader parameter is ignored on iOS
     val animationController = remember(byteArray, autoPlay, artboardName, fit, stateMachineName, alignment) {
         val controller = RiveAnimationController()
 
@@ -212,7 +228,17 @@ actual fun CustomRiveAnimation(
         )
         controller
     }
-    
+
+    // Set up View Model if callback is provided
+    // The callback receives the RiveViewModel which can be used to call enableAutoBind
+    LaunchedEffect(animationController, onViewModelReady) {
+        onViewModelReady?.let { callback ->
+            animationController.viewModel()?.let { riveViewModel ->
+                callback(riveViewModel)
+            }
+        }
+    }
+
     // Set up callbacks when controller or callbacks change
     LaunchedEffect(animationController, onStateChanged, onRiveEvent) {
         animationController.setOnStateChanged(onStateChanged?.let { callback ->

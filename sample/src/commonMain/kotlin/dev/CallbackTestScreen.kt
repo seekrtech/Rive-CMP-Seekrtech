@@ -34,7 +34,7 @@ fun CallbackTestScreen(onBack: (() -> Unit)? = null) {
     val coroutineScope = rememberCoroutineScope()
     
     val alligatorComposition by rememberRiveComposition(
-        spec = { RiveCompositionSpec.byteArray(Res.readBytes("files/alligator_swipe.riv")) }
+        spec = { RiveCompositionSpec.byteArray(Res.readBytes("files/relax_onboarding_autolayout_test.riv")) }
     )
     
     // Auto-scroll to bottom when new event is added
