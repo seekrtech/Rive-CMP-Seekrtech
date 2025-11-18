@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,26 +50,43 @@ private const val MAX_SWIPE_OFFSET_FACTOR = 1.3f
 @Preview
 fun App() {
     var showCallbackTest by remember { mutableStateOf(false) }
-    
+    var showViewModelBinding by remember { mutableStateOf(false) }
+
     MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color(0xFF001C1C)
         ) {
-            if (showCallbackTest) {
-                dev.CallbackTestScreen(onBack = { showCallbackTest = false })
-            } else {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    CustomPullRefreshSample(height = 200f)
-                    
-                    // Toggle button
-                    androidx.compose.material3.FloatingActionButton(
-                        onClick = { showCallbackTest = !showCallbackTest },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(16.dp)
-                    ) {
-                        Text("Test")
+            when {
+                showCallbackTest -> {
+                    dev.CallbackTestScreen(onBack = { showCallbackTest = false })
+                }
+                showViewModelBinding -> {
+                    ViewModelBindingScreen(onBack = { showViewModelBinding = false })
+                }
+                else -> {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        CustomPullRefreshSample(height = 200f)
+
+                        // Test buttons
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            androidx.compose.material3.FloatingActionButton(
+                                onClick = { showCallbackTest = true }
+                            ) {
+                                Text("Test")
+                            }
+
+                            androidx.compose.material3.FloatingActionButton(
+                                onClick = { showViewModelBinding = true }
+                            ) {
+                                Text("VM")
+                            }
+                        }
                     }
                 }
             }

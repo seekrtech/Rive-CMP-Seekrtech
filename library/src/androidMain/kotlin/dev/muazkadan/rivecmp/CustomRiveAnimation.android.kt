@@ -11,8 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import app.rive.runtime.kotlin.RiveAnimationView
 import app.rive.runtime.kotlin.controllers.RiveFileController
+import app.rive.runtime.kotlin.core.FileAssetLoader
 import app.rive.runtime.kotlin.core.PlayableInstance
 import app.rive.runtime.kotlin.core.RiveEvent
+import app.rive.runtime.kotlin.core.ViewModelInstance
 import dev.muazkadan.rivecmp.core.RiveFit
 import dev.muazkadan.rivecmp.core.toAndroidFit
 import dev.muazkadan.rivecmp.core.RiveAlignment
@@ -30,12 +32,14 @@ actual fun CustomRiveAnimation(
     fit: RiveFit,
     stateMachineName: String?,
     onStateChanged: ((String, String) -> Unit)?,
-    onRiveEvent: ((String, Map<String, Any>) -> Unit)?
+    onRiveEvent: ((String, Map<String, Any>) -> Unit)?,
+    onViewModelReady: ((Any?) -> Unit)?
 ) {
     // Set up callbacks when composition or callbacks change
-    LaunchedEffect(composition, onStateChanged, onRiveEvent) {
+    LaunchedEffect(composition, onStateChanged, onRiveEvent, onViewModelReady) {
         composition?.setOnStateChangedListener(onStateChanged)
         composition?.setOnRiveEventListener(onRiveEvent)
+        composition?.setOnViewModelReadyListener(onViewModelReady)
     }
     
     if (composition != null) {
@@ -87,9 +91,17 @@ actual fun CustomRiveAnimation(
                             builder.setStateMachineName(it)
                         }
 
-                        builder.build()
+                        builder.build().also { view ->
+                            android.util.Log.d("CustomRiveAnimation", "Factory: Built view")
+                            android.util.Log.d("CustomRiveAnimation", "Factory: controller.file = ${view.controller.file}")
+                            android.util.Log.d("CustomRiveAnimation", "Factory: activeArtboard = ${view.controller.activeArtboard}")
+                        }
                     },
                     update = { view ->
+                        android.util.Log.d("CustomRiveAnimation", "Update: Before connect")
+                        android.util.Log.d("CustomRiveAnimation", "Update: controller.file = ${view.controller.file}")
+                        android.util.Log.d("CustomRiveAnimation", "Update: activeArtboard = ${view.controller.activeArtboard}")
+
                         composition.connectToAnimationView(view)
                     }
                 )
@@ -109,12 +121,13 @@ actual fun CustomRiveAnimation(
     fit: RiveFit,
     stateMachineName: String?,
     onStateChanged: ((String, String) -> Unit)?,
-    onRiveEvent: ((String, Map<String, Any>) -> Unit)?
+    onRiveEvent: ((String, Map<String, Any>) -> Unit)?,
+    onViewModelReady: ((Any?) -> Unit)?
 ) {
     var riveView by remember { mutableStateOf<RiveAnimationView?>(null) }
     var currentStateListener by remember { mutableStateOf<RiveFileController.Listener?>(null) }
     var currentEventListener by remember { mutableStateOf<RiveFileController.RiveEventListener?>(null) }
-    
+
     // Create state change listener
     val stateListener = remember(onStateChanged) {
         onStateChanged?.let { callback ->
@@ -129,7 +142,7 @@ actual fun CustomRiveAnimation(
             }
         }
     }
-    
+
     // Create event listener
     val eventListener = remember(onRiveEvent) {
         onRiveEvent?.let { callback ->
@@ -145,14 +158,15 @@ actual fun CustomRiveAnimation(
             }
         }
     }
-    
+
     DisposableEffect(Unit) {
         onDispose {
             currentStateListener?.let { riveView?.unregisterListener(it) }
             currentEventListener?.let { riveView?.removeEventListener(it) }
+            riveView?.controller?.file?.release()
         }
     }
-    
+
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -174,6 +188,13 @@ actual fun CustomRiveAnimation(
 
             builder.build().also { view ->
                 riveView = view
+
+                // Initialize View Model if specified
+                val instance = view.controller.file
+                    ?.defaultViewModelForArtboard(view.controller.activeArtboard!!)
+                    ?.createDefaultInstance()
+                view.controller.stateMachines.first().viewModelInstance = instance
+                onViewModelReady?.invoke(instance)
             }
         },
         update = { view ->
@@ -183,7 +204,7 @@ actual fun CustomRiveAnimation(
                 stateListener?.let { view.registerListener(it) }
                 currentStateListener = stateListener
             }
-            
+
             // Update event listener
             if (currentEventListener != eventListener) {
                 currentEventListener?.let { view.removeEventListener(it) }
@@ -205,12 +226,14 @@ actual fun CustomRiveAnimation(
     fit: RiveFit,
     stateMachineName: String?,
     onStateChanged: ((String, String) -> Unit)?,
-    onRiveEvent: ((String, Map<String, Any>) -> Unit)?
+    onRiveEvent: ((String, Map<String, Any>) -> Unit)?,
+    onViewModelReady: ((Any?) -> Unit)?,
+    assetLoader: Any?
 ) {
     var riveView by remember { mutableStateOf<RiveAnimationView?>(null) }
     var currentStateListener by remember { mutableStateOf<RiveFileController.Listener?>(null) }
     var currentEventListener by remember { mutableStateOf<RiveFileController.RiveEventListener?>(null) }
-    
+
     // Create state change listener
     val stateListener = remember(onStateChanged) {
         onStateChanged?.let { callback ->
@@ -225,7 +248,7 @@ actual fun CustomRiveAnimation(
             }
         }
     }
-    
+
     // Create event listener
     val eventListener = remember(onRiveEvent) {
         onRiveEvent?.let { callback ->
@@ -241,22 +264,33 @@ actual fun CustomRiveAnimation(
             }
         }
     }
-    
+
     DisposableEffect(Unit) {
         onDispose {
             currentStateListener?.let { riveView?.unregisterListener(it) }
             currentEventListener?.let { riveView?.removeEventListener(it) }
+            riveView?.controller?.file?.release()
         }
     }
 
     AndroidView(
         modifier = modifier,
         factory = { context ->
+            // If we need ViewModel, disable autoplay and manually control it
+            val needsViewModel = onViewModelReady != null
+
             val builder = RiveAnimationView.Builder(context)
                 .setResource(byteArray)
                 .setAlignment(alignment.toAndroidAlignment())
                 .setFit(fit.toAndroidFit())
-                .setAutoplay(autoPlay)
+                .setAutoplay(if (needsViewModel) false else autoPlay)
+                .setAutoBind(needsViewModel)
+
+            // Set asset loader if provided
+            (assetLoader as? FileAssetLoader)?.let {
+                android.util.Log.d("CustomRiveAnimation", "Setting asset loader: $it")
+                builder.setAssetLoader(it)
+            }
 
             // Set artboard name if provided
             artboardName?.let {
@@ -270,6 +304,32 @@ actual fun CustomRiveAnimation(
 
             builder.build().also { view ->
                 riveView = view
+
+                android.util.Log.d("CustomRiveAnimation", "Factory: View built, needsViewModel=$needsViewModel")
+
+                if (needsViewModel) {
+                    // Start playing to initialize state machines and trigger autoBind
+                    view.play()
+                    android.util.Log.d("CustomRiveAnimation", "Factory: Called play() to initialize")
+
+                    // Immediately pause to prevent state changes before we get the ViewModel
+                    view.pause()
+                    android.util.Log.d("CustomRiveAnimation", "Factory: Called pause() to wait for ViewModel")
+
+                    // Now get the ViewModel and invoke callback
+                    view.post {
+                        val instance = view.controller.stateMachines.firstOrNull()?.viewModelInstance
+                        android.util.Log.d("CustomRiveAnimation", "Post: Auto-bound ViewModel = $instance")
+
+                        onViewModelReady?.invoke(instance)
+
+                        // Resume playback if autoPlay was requested
+                        if (autoPlay) {
+                            view.play()
+                            android.util.Log.d("CustomRiveAnimation", "Post: Resumed playback")
+                        }
+                    }
+                }
             }
         },
         update = { view ->
@@ -279,7 +339,7 @@ actual fun CustomRiveAnimation(
                 stateListener?.let { view.registerListener(it) }
                 currentStateListener = stateListener
             }
-            
+
             // Update event listener
             if (currentEventListener != eventListener) {
                 currentEventListener?.let { view.removeEventListener(it) }

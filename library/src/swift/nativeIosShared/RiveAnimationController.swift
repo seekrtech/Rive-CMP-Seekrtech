@@ -6,10 +6,11 @@ import Foundation
 import RiveRuntime
 
 @objcMembers public class RiveAnimationController: NSObject, RiveStateMachineDelegate {
-    private var viewModel: RiveViewModel?
+    private(set) public var viewModel: RiveViewModel?
     private var riveView: RiveView?
+    private var riveModel: RiveModel?
     private var pendingConfiguration: (url: String, autoPlay: Bool, artboardName: String?, stateMachineName: String?, fit: RiveFit, alignment: RiveAlignment)?
-    
+
     // Callback closures for Kotlin interop
     public var onStateChanged: ((String?, String?) -> Void)?
     public var onRiveEvent: ((String?, [String: Any]?) -> Void)?
@@ -66,17 +67,18 @@ import RiveRuntime
             let riveFile = try RiveFile(data: data as Data, loadCdn: true)
 
             // Create RiveModel from RiveFile
-            let riveModel = RiveModel(riveFile: riveFile)
+            let model = RiveModel(riveFile: riveFile)
+            self.riveModel = model
 
             // Set artboard if specified
             if let artboardName = artboardName {
-                try riveModel.setArtboard(artboardName)
+                try model.setArtboard(artboardName)
             }
 
             // Create RiveViewModel from RiveModel
             if let stateMachineName = stateMachineName {
                 viewModel = RiveViewModel(
-                    riveModel,
+                    model,
                     stateMachineName: stateMachineName,
                     fit: fit,
                     alignment: alignment,
@@ -85,7 +87,7 @@ import RiveRuntime
                 )
             } else {
                 viewModel = RiveViewModel(
-                    riveModel,
+                    model,
                     animationName: nil,
                     fit: fit,
                     alignment: alignment,
@@ -150,7 +152,16 @@ import RiveRuntime
         }
         riveView = nil
         viewModel = nil
+        riveModel = nil
         pendingConfiguration = nil
+    }
+
+    // MARK: - View Model Support
+
+    public func enableAutoBind(onViewModelReady: @escaping (Any?) -> Void) {
+        viewModel?.riveModel?.enableAutoBind { instance in
+            onViewModelReady(instance)
+        }
     }
     
     public func setNumberInput(_ name: String, _ value: Float) {
