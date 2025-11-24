@@ -35,12 +35,11 @@ actual fun CustomRiveAnimation(
     onViewModelReady: ((Any?) -> Unit)?,
     assetLoader: Any?
 ) {
-    // Set up callbacks when composition or callbacks change
-    LaunchedEffect(composition, onStateChanged, onRiveEvent) {
-        composition?.setOnStateChangedListener(onStateChanged)
-        composition?.setOnRiveEventListener(onRiveEvent)
-    }
-    
+    // Set callbacks immediately before any view creation
+    composition?.setOnStateChangedListener(onStateChanged)
+    composition?.setOnRiveEventListener(onRiveEvent)
+    composition?.setOnViewModelReadyListener(onViewModelReady)
+
     if (composition != null) {
         when (val spec = composition.spec) {
             is RiveUrlCompositionSpec -> {

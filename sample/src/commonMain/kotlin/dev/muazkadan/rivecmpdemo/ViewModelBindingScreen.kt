@@ -15,8 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.muazkadan.rivecmp.CustomRiveAnimation
+import dev.muazkadan.rivecmp.RiveCompositionSpec
 import dev.muazkadan.rivecmp.core.RiveFit
 import dev.muazkadan.rivecmp.createSystemFontLoader
+import dev.muazkadan.rivecmp.rememberRiveComposition
 import dev.muazkadan.rivecmp.updateViewModelStringProperty
 import dev.muazkadan.rivecmp.utils.ExperimentalRiveCmpApi
 import rivecmp.sample.generated.resources.Res
@@ -25,7 +27,6 @@ import rivecmp.sample.generated.resources.Res
 @Composable
 fun ViewModelBindingScreen(onBack: () -> Unit) {
     var viewModelInstance by remember { mutableStateOf<Any?>(null) }
-    var riveByteArray by remember { mutableStateOf<ByteArray?>(null) }
 
     // Get current system locale
     // TODO: This could be passed as a parameter to ViewModelBindingScreen if you want explicit control
@@ -38,35 +39,57 @@ fun ViewModelBindingScreen(onBack: () -> Unit) {
 
     val assetLoader = createSystemFontLoader("zh_TW")
 
-    // Load the Rive file
-    LaunchedEffect(Unit) {
-        riveByteArray = Res.readBytes("files/relax_onboarding_autolayout_test.riv")
+    // Load the Rive file using composition
+    val composition by rememberRiveComposition {
+        RiveCompositionSpec.byteArray(Res.readBytes("files/time_guard_intro.riv"))
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        riveByteArray?.let { bytes ->
-            CustomRiveAnimation(
-                modifier = Modifier.fillMaxSize(),
-                byteArray = bytes,
-                stateMachineName = "State Machine 1",
-                artboardName = "1194x1194",
-                fit = RiveFit.LAYOUT,
-                assetLoader = assetLoader,
-                onViewModelReady = { instance ->
-                    viewModelInstance = instance
-                    println("ViewModelBinding: onViewModelReady called, instance = $instance")
-                },
-                onStateChanged = { stateMachineName, stateName ->
-                    // Update the "text" property on the ViewModel with the current state name
-                    println("ViewModelBinding: onStateChanged called - stateMachine: $stateMachineName, state: $stateName")
-                    when(stateName) {
-                        "cut 1" -> updateViewModelStringProperty(viewModelInstance, "text", "我們來試試中文如何")
-                        "cut 2-1" -> updateViewModelStringProperty(viewModelInstance, "text", "很長很長很長很長很長很長的中文內容看看會不會出事呢")
-                        else -> updateViewModelStringProperty(viewModelInstance, "text", stateName)
+        CustomRiveAnimation(
+            modifier = Modifier.fillMaxSize(),
+            composition = composition,
+            stateMachineName = "State Machine 1",
+            artboardName = "autolayout",
+            fit = RiveFit.LAYOUT,
+            assetLoader = assetLoader,
+            onViewModelReady = { instance ->
+                viewModelInstance = instance
+                println("ViewModelBinding: onViewModelReady called, instance = $instance")
+            },
+            onStateChanged = { stateMachineName, stateName ->
+                // Update the "text" property on the ViewModel with the current state name
+                println("ViewModelBinding: onStateChanged called - stateMachine: $stateMachineName, state: $stateName")
+                when (stateName) {
+                    "cut 1 intro" -> {
+                        updateViewModelStringProperty(viewModelInstance, "Title", "screen_time_intro_title_1")
+                        updateViewModelStringProperty(viewModelInstance, "Btn", "screen_time_intro_btn_1")
+                    }
+                    "cut 2 intro" -> {
+                        updateViewModelStringProperty(viewModelInstance, "Title", "screen_time_intro_title_2")
+                        updateViewModelStringProperty(viewModelInstance, "Btn", "screen_time_intro_btn_2")
+                    }
+                    "cut3 intro" -> {
+                        updateViewModelStringProperty(viewModelInstance, "Title", "screen_time_intro_title_3")
+                        updateViewModelStringProperty(viewModelInstance, "Btn", "screen_time_intro_btn_3")
+                    }
+                    "cut4 intro" -> {
+                        updateViewModelStringProperty(viewModelInstance, "Title", "screen_time_intro_title_4")
+                        updateViewModelStringProperty(viewModelInstance, "Btn", "screen_time_intro_btn_4")
+                    }
+                    "cut5 intro" -> {
+                        updateViewModelStringProperty(viewModelInstance, "Title", "screen_time_intro_title_5")
+                        updateViewModelStringProperty(viewModelInstance, "Btn", "screen_time_intro_btn_5")
+                    }
+                    "Exit" -> {
+                        updateViewModelStringProperty(viewModelInstance, "Title", "screen_time_intro_title_5")
+                        updateViewModelStringProperty(viewModelInstance, "Btn", "screen_time_intro_btn_5")
+                    }
+                    else -> {
+                       // do nothing
                     }
                 }
-            )
-        }
+            }
+        )
 
         // Back button
         FloatingActionButton(

@@ -15,6 +15,10 @@ actual class RiveComposition internal actual constructor(
     // Callback listeners
     private var onStateChangedCallback: ((stateMachineName: String, stateName: String) -> Unit)? = null
     private var onRiveEventCallback: ((eventName: String, properties: Map<String, Any>) -> Unit)? = null
+    private var onViewModelReadyCallback: ((Any?) -> Unit)? = null
+
+    // ViewModel instance
+    private var viewModelInitialized = false
 
     actual fun setNumberInput(stateMachineName: String, name: String, value: Float) {
         controllerRef?.setNumberInput(name, value)
@@ -61,7 +65,7 @@ actual class RiveComposition internal actual constructor(
      */
     fun setOnRiveEventListener(listener: ((String, Map<String, Any>) -> Unit)?) {
         onRiveEventCallback = listener
-        
+
         // Update the controller's callback if already connected
         controllerRef?.setOnRiveEvent(listener?.let { callback ->
             { eventName: String?, properties: Map<*, *>? ->
@@ -72,9 +76,30 @@ actual class RiveComposition internal actual constructor(
         })
     }
 
+    /**
+     * Set a listener for ViewModel ready callback
+     * @param listener Callback invoked when ViewModel instance is ready
+     */
+    fun setOnViewModelReadyListener(listener: ((Any?) -> Unit)?) {
+        onViewModelReadyCallback = listener
+
+        // Update the controller's callback if already connected
+        if (!viewModelInitialized) {
+            controllerRef?.let { controller ->
+                listener?.let { callback ->
+                    controller.setOnViewModelReady { instance ->
+                        callback(instance)
+                        viewModelInitialized = true
+                    }
+                    controller.enableAutoBind()
+                }
+            }
+        }
+    }
+
     internal actual fun connectToAnimationView(animationView: Any?) {
         controllerRef = animationView as? RiveAnimationController
-        
+
         // Set up callbacks when controller is connected
         controllerRef?.let { controller ->
             // Set state change callback
@@ -83,13 +108,24 @@ actual class RiveComposition internal actual constructor(
                     callback(stateMachineName ?: "", stateName ?: "")
                 }
             }
-            
+
             // Set Rive event callback
             onRiveEventCallback?.let { callback ->
                 controller.setOnRiveEvent { eventName: String?, properties: Map<*, *>? ->
                     @Suppress("UNCHECKED_CAST")
                     val kotlinMap = properties as? Map<String, Any> ?: emptyMap()
                     callback(eventName ?: "", kotlinMap)
+                }
+            }
+
+            // Set ViewModel ready callback
+            if (!viewModelInitialized) {
+                onViewModelReadyCallback?.let { callback ->
+                    controller.setOnViewModelReady { instance ->
+                        callback(instance)
+                        viewModelInitialized = true
+                    }
+                    controller.enableAutoBind()
                 }
             }
         }

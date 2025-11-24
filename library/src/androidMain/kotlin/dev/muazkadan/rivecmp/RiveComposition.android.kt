@@ -15,15 +15,15 @@ actual class RiveComposition internal actual constructor(
     // Callback listeners
     private var onStateChangedCallback: ((stateMachineName: String, stateName: String) -> Unit)? = null
     private var onRiveEventCallback: ((eventName: String, properties: Map<String, Any>) -> Unit)? = null
-    private var onViewModelReadyCallback: ((Any?) -> Unit)? = null
+    internal var onViewModelReadyCallback: ((Any?) -> Unit)? = null
 
     // Current registered listeners
     private var currentStateListener: RiveFileController.Listener? = null
     private var currentEventListener: RiveFileController.RiveEventListener? = null
 
     // ViewModel instance
-    private var viewModelInstance: Any? = null
-    private var viewModelInitialized = false
+    internal var viewModelInstance: Any? = null
+    internal var viewModelInitialized = false
 
     actual fun setNumberInput(stateMachineName: String, name: String, value: Float) {
         animationViewRef?.setNumberState(
@@ -129,62 +129,74 @@ actual class RiveComposition internal actual constructor(
         }
     }
 
-    internal actual fun connectToAnimationView(animationView: Any?) {
-        android.util.Log.d("RiveComposition", "connectToAnimationView called with: $animationView")
+    internal fun connectToAnimationView(animationView: Any?, skipViewModelInit: Boolean = false) {
         animationViewRef = animationView as? RiveAnimationView
-        android.util.Log.d("RiveComposition", "animationViewRef = $animationViewRef")
 
         // Set up callbacks when view is connected
         animationViewRef?.let { view ->
-            android.util.Log.d("RiveComposition", "Setting up callbacks, controller = ${view.controller}")
-            android.util.Log.d("RiveComposition", "controller.file = ${view.controller.file}")
-            android.util.Log.d("RiveComposition", "controller.activeArtboard = ${view.controller.activeArtboard}")
-            // Set state change listener
-            onStateChangedCallback?.let { callback ->
-                currentStateListener = object : RiveFileController.Listener {
-                    override fun notifyStateChanged(stateMachineName: String, stateName: String) {
-                        callback(stateMachineName, stateName)
-                    }
-                    override fun notifyLoop(animation: PlayableInstance) {}
-                    override fun notifyPause(animation: PlayableInstance) {}
-                    override fun notifyPlay(animation: PlayableInstance) {}
-                    override fun notifyStop(animation: PlayableInstance) {}
-                }
-                currentStateListener?.let { view.registerListener(it) }
-            }
+            updateListeners(view)
 
-            // Set Rive event listener
-            onRiveEventCallback?.let { callback ->
-                currentEventListener = object : RiveFileController.RiveEventListener {
-                    override fun notifyEvent(event: RiveEvent) {
-                        val properties = buildMap<String, Any> {
-                            put("type", event.type.toString())
-                            put("delay", event.delay)
-                            putAll(event.properties)
-                        }
-                        callback(event.name, properties)
+            // Initialize ViewModel if not already done and not skipped
+            // Note: For ByteArray-based compositions with autoBind enabled, the ViewModel
+            // is already initialized in the factory. We should skip initialization here.
+            if (!skipViewModelInit && !viewModelInitialized && view.controller.file != null) {
+                // First, check if there's an auto-bound ViewModel instance
+                val autoBoundInstance = view.controller.stateMachines.firstOrNull()?.viewModelInstance
+
+                if (autoBoundInstance != null) {
+                    // Use the auto-bound instance
+                    viewModelInstance = autoBoundInstance
+                } else if (view.controller.activeArtboard != null) {
+                    // Fall back to manual initialization if no auto-bound instance exists
+                    val defaultViewModel = view.controller.file
+                        ?.defaultViewModelForArtboard(view.controller.activeArtboard!!)
+
+                    viewModelInstance = defaultViewModel?.createDefaultInstance()
+
+                    // Manually bind to the state machine
+                    view.controller.stateMachines.firstOrNull()?.let { stateMachine ->
+                        stateMachine.viewModelInstance = viewModelInstance as? app.rive.runtime.kotlin.core.ViewModelInstance
                     }
                 }
-                currentEventListener?.let { view.addEventListener(it) }
-            }
-
-            // Initialize ViewModel if not already done
-            if (!viewModelInitialized && view.controller.file != null && view.controller.activeArtboard != null) {
-                android.util.Log.d("RiveComposition", "Initializing ViewModel from connectToAnimationView")
-                android.util.Log.d("RiveComposition", "controller.file = ${view.controller.file}")
-                android.util.Log.d("RiveComposition", "activeArtboard = ${view.controller.activeArtboard}")
-
-                val defaultViewModel = view.controller.file
-                    ?.defaultViewModelForArtboard(view.controller.activeArtboard!!)
-                android.util.Log.d("RiveComposition", "defaultViewModel = $defaultViewModel")
-
-                viewModelInstance = defaultViewModel?.createDefaultInstance()
-                android.util.Log.d("RiveComposition", "Created viewModelInstance = $viewModelInstance")
 
                 viewModelInitialized = true
                 onViewModelReadyCallback?.invoke(viewModelInstance)
-                android.util.Log.d("RiveComposition", "Invoked onViewModelReadyCallback")
             }
+        }
+    }
+
+    internal actual fun connectToAnimationView(animationView: Any?) {
+        connectToAnimationView(animationView, skipViewModelInit = false)
+    }
+
+    internal fun updateListeners(view: RiveAnimationView) {
+        // Set state change listener
+        onStateChangedCallback?.let { callback ->
+            currentStateListener = object : RiveFileController.Listener {
+                override fun notifyStateChanged(stateMachineName: String, stateName: String) {
+                    callback(stateMachineName, stateName)
+                }
+                override fun notifyLoop(animation: PlayableInstance) {}
+                override fun notifyPause(animation: PlayableInstance) {}
+                override fun notifyPlay(animation: PlayableInstance) {}
+                override fun notifyStop(animation: PlayableInstance) {}
+            }
+            currentStateListener?.let { view.registerListener(it) }
+        }
+
+        // Set Rive event listener
+        onRiveEventCallback?.let { callback ->
+            currentEventListener = object : RiveFileController.RiveEventListener {
+                override fun notifyEvent(event: RiveEvent) {
+                    val properties = buildMap<String, Any> {
+                        put("type", event.type.toString())
+                        put("delay", event.delay)
+                        putAll(event.properties)
+                    }
+                    callback(event.name, properties)
+                }
+            }
+            currentEventListener?.let { view.addEventListener(it) }
         }
     }
 } 

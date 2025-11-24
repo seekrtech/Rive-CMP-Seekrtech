@@ -36,13 +36,11 @@ actual fun CustomRiveAnimation(
     onViewModelReady: ((Any?) -> Unit)?,
     assetLoader: Any?
 ) {
-    // Set up callbacks when composition or callbacks change
-    LaunchedEffect(composition, onStateChanged, onRiveEvent, onViewModelReady) {
-        composition?.setOnStateChangedListener(onStateChanged)
-        composition?.setOnRiveEventListener(onRiveEvent)
-        composition?.setOnViewModelReadyListener(onViewModelReady)
-    }
-    
+    // Set callbacks immediately before any view creation
+    composition?.setOnStateChangedListener(onStateChanged)
+    composition?.setOnRiveEventListener(onRiveEvent)
+    composition?.setOnViewModelReadyListener(onViewModelReady)
+
     if (composition != null) {
         when (val spec = composition.spec) {
             is RiveUrlCompositionSpec -> {
@@ -76,11 +74,20 @@ actual fun CustomRiveAnimation(
                 AndroidView(
                     modifier = modifier,
                     factory = { context ->
+                        // Check if we need ViewModel for data binding
+                        val needsViewModel = composition.onViewModelReadyCallback != null
+
                         val builder = RiveAnimationView.Builder(context)
                             .setResource(spec.byteArray)
                             .setAlignment(alignment.toAndroidAlignment())
                             .setFit(fit.toAndroidFit())
-                            .setAutoplay(autoPlay)
+                            .setAutoplay(if (needsViewModel) false else autoPlay)
+                            .setAutoBind(needsViewModel)
+
+                        // Set asset loader if provided (for font loading)
+                        (assetLoader as? FileAssetLoader)?.let {
+                            builder.setAssetLoader(it)
+                        }
 
                         // Set artboard name if provided
                         artboardName?.let {
@@ -93,17 +100,33 @@ actual fun CustomRiveAnimation(
                         }
 
                         builder.build().also { view ->
-                            android.util.Log.d("CustomRiveAnimation", "Factory: Built view")
-                            android.util.Log.d("CustomRiveAnimation", "Factory: controller.file = ${view.controller.file}")
-                            android.util.Log.d("CustomRiveAnimation", "Factory: activeArtboard = ${view.controller.activeArtboard}")
+                            // Connect view to composition first (for state change and event listeners)
+                            composition.connectToAnimationView(view, skipViewModelInit = needsViewModel)
+
+                            if (needsViewModel) {
+                                // Start playing to initialize state machines and trigger autoBind
+                                view.play()
+                                // Immediately pause to prevent state changes before callback
+                                view.pause()
+
+                                // Get the auto-bound ViewModel instance and notify
+                                view.post {
+                                    val instance = view.controller.stateMachines.firstOrNull()?.viewModelInstance
+                                    composition.viewModelInstance = instance
+                                    composition.viewModelInitialized = true
+                                    composition.onViewModelReadyCallback?.invoke(instance)
+
+                                    // Resume playback if autoPlay was requested
+                                    if (autoPlay) {
+                                        view.play()
+                                    }
+                                }
+                            }
                         }
                     },
                     update = { view ->
-                        android.util.Log.d("CustomRiveAnimation", "Update: Before connect")
-                        android.util.Log.d("CustomRiveAnimation", "Update: controller.file = ${view.controller.file}")
-                        android.util.Log.d("CustomRiveAnimation", "Update: activeArtboard = ${view.controller.activeArtboard}")
-
-                        composition.connectToAnimationView(view)
+                        // Only update listeners, don't reinitialize ViewModel
+                        composition.updateListeners(view)
                     }
                 )
             }
@@ -290,7 +313,6 @@ actual fun CustomRiveAnimation(
 
             // Set asset loader if provided
             (assetLoader as? FileAssetLoader)?.let {
-                android.util.Log.d("CustomRiveAnimation", "Setting asset loader: $it")
                 builder.setAssetLoader(it)
             }
 
@@ -307,28 +329,20 @@ actual fun CustomRiveAnimation(
             builder.build().also { view ->
                 riveView = view
 
-                android.util.Log.d("CustomRiveAnimation", "Factory: View built, needsViewModel=$needsViewModel")
-
                 if (needsViewModel) {
                     // Start playing to initialize state machines and trigger autoBind
                     view.play()
-                    android.util.Log.d("CustomRiveAnimation", "Factory: Called play() to initialize")
-
                     // Immediately pause to prevent state changes before we get the ViewModel
                     view.pause()
-                    android.util.Log.d("CustomRiveAnimation", "Factory: Called pause() to wait for ViewModel")
 
                     // Now get the ViewModel and invoke callback
                     view.post {
                         val instance = view.controller.stateMachines.firstOrNull()?.viewModelInstance
-                        android.util.Log.d("CustomRiveAnimation", "Post: Auto-bound ViewModel = $instance")
-
                         onViewModelReady?.invoke(instance)
 
                         // Resume playback if autoPlay was requested
                         if (autoPlay) {
                             view.play()
-                            android.util.Log.d("CustomRiveAnimation", "Post: Resumed playback")
                         }
                     }
                 }
