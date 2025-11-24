@@ -252,7 +252,7 @@ import RiveRuntime
         }
     }
 
-    // MARK: - ViewModel String Property Update
+    // MARK: - ViewModel Property Updates
 
     /// Updates a string property on a RiveDataBindingViewModelInstance
     /// - Parameters:
@@ -274,5 +274,78 @@ import RiveRuntime
         // Set the value
         stringProperty.value = value
         print("RiveAnimationController: Successfully set property '\(propertyName)' to '\(value)'")
+    }
+
+    /// Updates a number property on a RiveDataBindingViewModelInstance
+    /// - Parameters:
+    ///   - viewModelInstance: The ViewModel instance (should be RiveDataBindingViewModelInstance)
+    ///   - propertyName: The name of the number property to update
+    ///   - value: The number value to set
+    public static func updateNumberProperty(viewModelInstance: Any?, propertyName: String, value: Double) {
+        guard let instance = viewModelInstance as? RiveDataBindingViewModel.Instance else {
+            print("RiveAnimationController: viewModelInstance is not RiveDataBindingViewModel.Instance")
+            return
+        }
+
+        // Get the number property by name
+        guard let numberProperty = instance.numberProperty(fromPath: propertyName) else {
+            print("RiveAnimationController: Number property '\(propertyName)' not found")
+            return
+        }
+
+        // Set the value
+        numberProperty.value = Float(value)
+        print("RiveAnimationController: Successfully set property '\(propertyName)' to '\(value)'")
+    }
+
+    /// Updates a boolean property on a RiveDataBindingViewModelInstance
+    /// - Parameters:
+    ///   - viewModelInstance: The ViewModel instance (should be RiveDataBindingViewModelInstance)
+    ///   - propertyName: The name of the boolean property to update
+    ///   - value: The boolean value to set
+    public static func updateBooleanProperty(viewModelInstance: Any?, propertyName: String, value: Bool) {
+        guard let instance = viewModelInstance as? RiveDataBindingViewModel.Instance else {
+            print("RiveAnimationController: viewModelInstance is not RiveDataBindingViewModel.Instance")
+            return
+        }
+
+        // Get the boolean property by name
+        guard let booleanProperty = instance.booleanProperty(fromPath: propertyName) else {
+            print("RiveAnimationController: Boolean property '\(propertyName)' not found")
+            return
+        }
+
+        // Set the value
+        booleanProperty.value = value
+        print("RiveAnimationController: Successfully set property '\(propertyName)' to '\(value)'")
+    }
+
+    /// Updates a color property on a RiveDataBindingViewModelInstance
+    /// - Parameters:
+    ///   - viewModelInstance: The ViewModel instance (should be RiveDataBindingViewModelInstance)
+    ///   - propertyName: The name of the color property to update
+    ///   - value: The color value in ARGB format (0xAARRGGBB)
+    public static func updateColorProperty(viewModelInstance: Any?, propertyName: String, value: UInt32) {
+        guard let instance = viewModelInstance as? RiveDataBindingViewModel.Instance else {
+            print("RiveAnimationController: viewModelInstance is not RiveDataBindingViewModel.Instance")
+            return
+        }
+
+        // Get the color property by name
+        guard let colorProperty = instance.colorProperty(fromPath: propertyName) else {
+            print("RiveAnimationController: Color property '\(propertyName)' not found")
+            return
+        }
+
+        // Convert ARGB UInt32 to UIColor
+        let alpha = CGFloat((value >> 24) & 0xFF) / 255.0
+        let red = CGFloat((value >> 16) & 0xFF) / 255.0
+        let green = CGFloat((value >> 8) & 0xFF) / 255.0
+        let blue = CGFloat(value & 0xFF) / 255.0
+        let uiColor = UIColor(red: red, green: green, blue: blue, alpha: alpha)
+
+        // Set the value
+        colorProperty.value = uiColor
+        print("RiveAnimationController: Successfully set property '\(propertyName)' to '0x\(String(value, radix: 16))'")
     }
 }

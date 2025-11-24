@@ -36,7 +36,7 @@ fun ViewModelBindingScreen(onBack: () -> Unit) {
 //        if (country.isNotEmpty()) "${language}_${country}" else language
 //    }
 
-    val assetLoader = createSystemFontLoader("en")
+    val assetLoader = createSystemFontLoader("zh_TW")
 
     // Load the Rive file
     LaunchedEffect(Unit) {
