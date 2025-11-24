@@ -35,5 +35,11 @@ enum class RiveFit {
     /**
      * Do not scale the animation, use its original size.
      */
-    NONE
+    NONE,
+
+    /**
+     * Uses the layout size defined in the Rive artboard.
+     * This allows the artboard to resize automatically based on its configured layout.
+     */
+    LAYOUT
 }

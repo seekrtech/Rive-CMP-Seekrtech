@@ -12,4 +12,5 @@ internal fun RiveFit.toIosFit(): nativeIosShared.RiveFit = when (this) {
     RiveFit.FIT_WIDTH -> nativeIosShared.RiveFit.fitWidth
     RiveFit.FIT_HEIGHT -> nativeIosShared.RiveFit.fitHeight
     RiveFit.NONE -> nativeIosShared.RiveFit.noFit
+    RiveFit.LAYOUT -> nativeIosShared.RiveFit.layout
 }

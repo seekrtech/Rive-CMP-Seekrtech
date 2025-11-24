@@ -50,7 +50,7 @@ fun ViewModelBindingScreen(onBack: () -> Unit) {
                 byteArray = bytes,
                 stateMachineName = "State Machine 1",
                 artboardName = "1194x1194",
-                fit = RiveFit.NONE,
+                fit = RiveFit.LAYOUT,
                 assetLoader = assetLoader,
                 onViewModelReady = { instance ->
                     viewModelInstance = instance
