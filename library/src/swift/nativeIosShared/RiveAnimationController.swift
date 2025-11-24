@@ -14,6 +14,7 @@ import RiveRuntime
     // Callback closures for Kotlin interop
     public var onStateChanged: ((String?, String?) -> Void)?
     public var onRiveEvent: ((String?, [String: Any]?) -> Void)?
+    public var onViewModelReady: ((Any?) -> Void)?
 
     override init() {
         super.init()
@@ -65,11 +66,19 @@ import RiveRuntime
         do {
 
             // Create RiveFile from NSData with custom loader
-            let riveFile = try RiveFile(
-                data: data as Data,
-                loadCdn: true,
-                customLoader: customLoader
-            )
+            let riveFile: RiveFile
+            if let loader = customLoader {
+                riveFile = try RiveFile(
+                    data: data as Data,
+                    loadCdn: true,
+                    customAssetLoader: loader
+                )
+            } else {
+                riveFile = try RiveFile(
+                    data: data as Data,
+                    loadCdn: true
+                )
+            }
 
             // Create RiveModel from RiveFile
             let model = RiveModel(riveFile: riveFile)
@@ -163,9 +172,9 @@ import RiveRuntime
 
     // MARK: - View Model Support
 
-    public func enableAutoBind(onViewModelReady: @escaping (Any?) -> Void) {
-        viewModel?.riveModel?.enableAutoBind { instance in
-            onViewModelReady(instance)
+    public func enableAutoBind() {
+        viewModel?.riveModel?.enableAutoBind { [weak self] instance in
+            self?.onViewModelReady?(instance)
         }
     }
     
@@ -209,9 +218,8 @@ import RiveRuntime
             properties["type"] = "general"
 
             // Add general event properties if available
-            if let eventProperties = generalEvent.properties() as? [String: Any] {
-                properties.merge(eventProperties) { (_, new) in new }
-            }
+            let eventProperties = generalEvent.properties()
+            properties.merge(eventProperties) { (_, new) in new }
         } else if let openUrlEvent = riveEvent as? RiveOpenUrlEvent {
             properties["type"] = "openUrl"
             properties["url"] = openUrlEvent.url()
@@ -252,19 +260,19 @@ import RiveRuntime
     ///   - propertyName: The name of the string property to update
     ///   - value: The string value to set
     public static func updateStringProperty(viewModelInstance: Any?, propertyName: String, value: String) {
-        guard let instance = viewModelInstance as? RiveDataBindingViewModelInstance else {
-            print("RiveAnimationController: viewModelInstance is not RiveDataBindingViewModelInstance")
+        guard let instance = viewModelInstance as? RiveDataBindingViewModel.Instance else {
+            print("RiveAnimationController: viewModelInstance is not RiveDataBindingViewModel.Instance")
             return
         }
 
         // Get the string property by name
-        guard let stringProperty = instance.getStringProperty(propertyName) else {
+        guard let stringProperty = instance.stringProperty(fromPath: propertyName) else {
             print("RiveAnimationController: String property '\(propertyName)' not found")
             return
         }
 
         // Set the value
-        stringProperty.setValue(value)
+        stringProperty.value = value
         print("RiveAnimationController: Successfully set property '\(propertyName)' to '\(value)'")
     }
 }

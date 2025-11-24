@@ -92,7 +92,8 @@ actual fun CustomRiveAnimation(
                         artboardName = artboardName,
                         stateMachineName = stateMachineName,
                         fit = fit.toIosFit(),
-                        alignment = alignment.toIosAlignment()
+                        alignment = alignment.toIosAlignment(),
+                        customLoader = null
                     )
                     composition.connectToAnimationView(controller)
                     controller
@@ -148,12 +149,13 @@ actual fun CustomRiveAnimation(
     }
 
     // Set up View Model if callback is provided
-    // The callback receives the RiveViewModel which can be used to call enableAutoBind
+    // The callback receives the actual ViewModel instance from enableAutoBind
     LaunchedEffect(animationController, onViewModelReady) {
         onViewModelReady?.let { callback ->
-            animationController.viewModel()?.let { riveViewModel ->
-                callback(riveViewModel)
+            animationController.setOnViewModelReady { instance ->
+                callback(instance)
             }
+            animationController.enableAutoBind()
         }
     }
 
@@ -239,12 +241,13 @@ actual fun CustomRiveAnimation(
     }
 
     // Set up View Model if callback is provided
-    // The callback receives the RiveViewModel which can be used to call enableAutoBind
+    // The callback receives the actual ViewModel instance from enableAutoBind
     LaunchedEffect(animationController, onViewModelReady) {
         onViewModelReady?.let { callback ->
-            animationController.viewModel()?.let { riveViewModel ->
-                callback(riveViewModel)
+            animationController.setOnViewModelReady { instance ->
+                callback(instance)
             }
+            animationController.enableAutoBind()
         }
     }
 

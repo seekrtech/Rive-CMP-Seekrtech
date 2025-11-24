@@ -1,5 +1,6 @@
 package dev.muazkadan.rivecmp
 
+import kotlinx.cinterop.ExperimentalForeignApi
 import nativeIosShared.RiveAnimationController
 
 /**
@@ -11,12 +12,13 @@ import nativeIosShared.RiveAnimationController
  * @param propertyName The name of the string property to update
  * @param value The string value to set
  */
+@OptIn(ExperimentalForeignApi::class)
 actual fun updateViewModelStringProperty(
     viewModelInstance: Any?,
     propertyName: String,
     value: String
 ) {
-    RiveAnimationController.updateStringProperty(
+    RiveAnimationController.updateStringPropertyWithViewModelInstance(
         viewModelInstance = viewModelInstance,
         propertyName = propertyName,
         value = value

@@ -1,6 +1,7 @@
 package dev.muazkadan.rivecmp
 
 import androidx.compose.runtime.Composable
+import kotlinx.cinterop.ExperimentalForeignApi
 
 /**
  * Creates an iOS system font asset loader for the specified locale.
@@ -12,6 +13,7 @@ import androidx.compose.runtime.Composable
  * @param locale Language/locale code (currently unused on iOS)
  * @return Swift closure for loading system fonts
  */
+@OptIn(ExperimentalForeignApi::class)
 @Composable
 actual fun createSystemFontLoader(locale: String): Any? {
     // iOS uses UIFont.systemFont which has automatic fallback for all scripts
