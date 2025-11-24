@@ -19,6 +19,7 @@ expect fun CustomRiveAnimation(
     onStateChanged: ((stateMachineName: String, stateName: String) -> Unit)? = null,
     onRiveEvent: ((eventName: String, properties: Map<String, Any>) -> Unit)? = null,
     onViewModelReady: ((viewModelInstance: Any?) -> Unit)? = null,
+    assetLoader: Any? = null,
 )
 
 @ExperimentalRiveCmpApi
@@ -34,6 +35,7 @@ expect fun CustomRiveAnimation(
     onStateChanged: ((stateMachineName: String, stateName: String) -> Unit)? = null,
     onRiveEvent: ((eventName: String, properties: Map<String, Any>) -> Unit)? = null,
     onViewModelReady: ((viewModelInstance: Any?) -> Unit)? = null,
+    assetLoader: Any? = null,
 )
 
 @ExperimentalRiveCmpApi

@@ -56,15 +56,20 @@ import RiveRuntime
         artboardName: String?,
         stateMachineName: String?,
         fit: RiveFit,
-        alignment: RiveAlignment
+        alignment: RiveAlignment,
+        customLoader: ((RiveFileAsset, Data, RiveFactory) -> Bool)? = nil
     ) {
         // Clean up previous resources
         releaseAnimation()
 
         do {
 
-            // Create RiveFile from NSData
-            let riveFile = try RiveFile(data: data as Data, loadCdn: true)
+            // Create RiveFile from NSData with custom loader
+            let riveFile = try RiveFile(
+                data: data as Data,
+                loadCdn: true,
+                customLoader: customLoader
+            )
 
             // Create RiveModel from RiveFile
             let model = RiveModel(riveFile: riveFile)
@@ -198,11 +203,11 @@ import RiveRuntime
     public func onRiveEventReceived(onRiveEvent riveEvent: RiveEvent) {
         // Extract event properties
         var properties: [String: Any] = [:]
-        
+
         // Add event type
         if let generalEvent = riveEvent as? RiveGeneralEvent {
             properties["type"] = "general"
-            
+
             // Add general event properties if available
             if let eventProperties = generalEvent.properties() as? [String: Any] {
                 properties.merge(eventProperties) { (_, new) in new }
@@ -214,11 +219,52 @@ import RiveRuntime
         } else {
             properties["type"] = "unknown"
         }
-        
+
         // Add delay if available
         properties["delay"] = riveEvent.delay()
-        
+
         // Forward to Kotlin callback
         self.onRiveEvent?(riveEvent.name(), properties)
+    }
+
+    // MARK: - System Font Loader
+
+    /// Creates a custom asset loader that loads all available system fonts
+    public static func createSystemFontLoader() -> (RiveFileAsset, Data, RiveFactory) -> Bool {
+        return { (asset: RiveFileAsset, data: Data, factory: RiveFactory) -> Bool in
+            if let fontAsset = asset as? RiveFontAsset {
+                // Try loading the default system font
+                guard let font = factory.decodeFont(UIFont.systemFont(ofSize: 12)) else {
+                    return false
+                }
+                fontAsset.font(font)
+                return true
+            }
+            return false
+        }
+    }
+
+    // MARK: - ViewModel String Property Update
+
+    /// Updates a string property on a RiveDataBindingViewModelInstance
+    /// - Parameters:
+    ///   - viewModelInstance: The ViewModel instance (should be RiveDataBindingViewModelInstance)
+    ///   - propertyName: The name of the string property to update
+    ///   - value: The string value to set
+    public static func updateStringProperty(viewModelInstance: Any?, propertyName: String, value: String) {
+        guard let instance = viewModelInstance as? RiveDataBindingViewModelInstance else {
+            print("RiveAnimationController: viewModelInstance is not RiveDataBindingViewModelInstance")
+            return
+        }
+
+        // Get the string property by name
+        guard let stringProperty = instance.getStringProperty(propertyName) else {
+            print("RiveAnimationController: String property '\(propertyName)' not found")
+            return
+        }
+
+        // Set the value
+        stringProperty.setValue(value)
+        print("RiveAnimationController: Successfully set property '\(propertyName)' to '\(value)'")
     }
 }

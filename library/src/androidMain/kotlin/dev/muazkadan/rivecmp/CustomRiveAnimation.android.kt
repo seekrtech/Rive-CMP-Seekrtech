@@ -33,7 +33,8 @@ actual fun CustomRiveAnimation(
     stateMachineName: String?,
     onStateChanged: ((String, String) -> Unit)?,
     onRiveEvent: ((String, Map<String, Any>) -> Unit)?,
-    onViewModelReady: ((Any?) -> Unit)?
+    onViewModelReady: ((Any?) -> Unit)?,
+    assetLoader: Any?
 ) {
     // Set up callbacks when composition or callbacks change
     LaunchedEffect(composition, onStateChanged, onRiveEvent, onViewModelReady) {
@@ -122,7 +123,8 @@ actual fun CustomRiveAnimation(
     stateMachineName: String?,
     onStateChanged: ((String, String) -> Unit)?,
     onRiveEvent: ((String, Map<String, Any>) -> Unit)?,
-    onViewModelReady: ((Any?) -> Unit)?
+    onViewModelReady: ((Any?) -> Unit)?,
+    assetLoader: Any?
 ) {
     var riveView by remember { mutableStateOf<RiveAnimationView?>(null) }
     var currentStateListener by remember { mutableStateOf<RiveFileController.Listener?>(null) }
