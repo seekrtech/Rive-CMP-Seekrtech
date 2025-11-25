@@ -96,9 +96,10 @@ class AndroidSystemFontLoader(
      * Returns priority font list based on locale, matching Android's system defaults
      */
     private fun getPriorityFontsForLocale(locale: String): List<String> {
+        val normalizedLocale = locale.lowercase()
         return when {
             // Chinese Simplified
-            locale.startsWith("zh_CN") || locale == "zh" -> listOf(
+            normalizedLocale.startsWith("zh_cn") || normalizedLocale == "zh" -> listOf(
                 "NotoSansSC-Regular.otf",
                 "NotoSansCJK-Regular.ttc",
                 "DroidSansFallback.ttf",
@@ -106,7 +107,7 @@ class AndroidSystemFontLoader(
             )
 
             // Chinese Traditional
-            locale.startsWith("zh_TW") || locale.startsWith("zh_HK") -> listOf(
+            normalizedLocale.startsWith("zh_tw") || normalizedLocale.startsWith("zh_hk") -> listOf(
                 "NotoSansTC-Regular.otf",
                 "NotoSansHK-Regular.otf",
                 "NotoSansCJK-Regular.ttc",
@@ -115,7 +116,7 @@ class AndroidSystemFontLoader(
             )
 
             // Japanese
-            locale.startsWith("ja") -> listOf(
+            normalizedLocale.startsWith("ja") -> listOf(
                 "NotoSansJP-Regular.otf",
                 "NotoSansCJK-Regular.ttc",
                 "DroidSansFallback.ttf",
@@ -123,7 +124,7 @@ class AndroidSystemFontLoader(
             )
 
             // Korean
-            locale.startsWith("ko") -> listOf(
+            normalizedLocale.startsWith("ko") -> listOf(
                 "NotoSansKR-Regular.otf",
                 "NotoSansCJK-Regular.ttc",
                 "DroidSansFallback.ttf",
@@ -131,7 +132,7 @@ class AndroidSystemFontLoader(
             )
 
             // Arabic
-            locale.startsWith("ar") -> listOf(
+            normalizedLocale.startsWith("ar") -> listOf(
                 "NotoSansArabic-Regular.ttf",
                 "NotoSansArabicUI-Regular.ttf",
                 "NotoNaskhArabic-Regular.ttf",
@@ -140,14 +141,14 @@ class AndroidSystemFontLoader(
             )
 
             // Thai
-            locale.startsWith("th") -> listOf(
+            normalizedLocale.startsWith("th") -> listOf(
                 "NotoSansThai-Regular.ttf",
                 "NotoSansThaiUI-Regular.ttf",
                 "Roboto-Regular.ttf"
             )
 
             // Russian (Cyrillic)
-            locale.startsWith("ru") -> listOf(
+            normalizedLocale.startsWith("ru") -> listOf(
                 "Roboto-Regular.ttf",  // Roboto includes Cyrillic
                 "DroidSans.ttf"
             )
