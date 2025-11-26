@@ -37,7 +37,7 @@ fun ViewModelBindingScreen(onBack: () -> Unit) {
 //        if (country.isNotEmpty()) "${language}_${country}" else language
 //    }
 
-    val assetLoader = createSystemFontLoader("zh_TW")
+    val assetLoader = createSystemFontLoader("zh_tw")
 
     // Load the Rive file using composition
     val composition by rememberRiveComposition {
@@ -61,8 +61,8 @@ fun ViewModelBindingScreen(onBack: () -> Unit) {
                 println("ViewModelBinding: onStateChanged called - stateMachine: $stateMachineName, state: $stateName")
                 when (stateName) {
                     "cut 1 intro" -> {
-                        updateViewModelStringProperty(viewModelInstance, "Title", "screen_time_intro_title_1")
-                        updateViewModelStringProperty(viewModelInstance, "Btn", "screen_time_intro_btn_1")
+                        updateViewModelStringProperty(viewModelInstance, "Title", "Title 標題三行\nTitle 標題三行\nTitle 標題三行")
+                        updateViewModelStringProperty(viewModelInstance, "Btn", "中文按鈕")
                     }
                     "cut 2 intro" -> {
                         updateViewModelStringProperty(viewModelInstance, "Title", "screen_time_intro_title_2")

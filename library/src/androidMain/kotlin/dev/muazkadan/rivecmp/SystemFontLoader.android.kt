@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import app.rive.runtime.kotlin.core.ContextAssetLoader
 import app.rive.runtime.kotlin.core.FileAsset
+import app.rive.runtime.kotlin.core.FontAsset
 import java.io.File
 
 /**
@@ -31,6 +32,11 @@ class AndroidSystemFontLoader(
 ) : ContextAssetLoader(context) {
 
     override fun loadContents(asset: FileAsset, inBandBytes: ByteArray): Boolean {
+        // Only handle text/font assets
+        if (!(asset is FontAsset)) {
+            return false
+        }
+
         val systemFontsDir = File("/system/fonts")
 
         if (!systemFontsDir.exists() || !systemFontsDir.isDirectory) {
@@ -38,10 +44,9 @@ class AndroidSystemFontLoader(
             return false
         }
 
-        Log.d(TAG, "Loading font for locale: $locale")
-
-        // Select priority fonts based on the current locale
-        val priorityFontNames = getPriorityFontsForLocale(locale)
+        // Get font family name from the asset
+        val fontFamily = asset.name
+        Log.d(TAG, "Loading font family: $fontFamily for locale: $locale")
 
         // Get all available font files
         val allFontFiles = systemFontsDir.listFiles { file ->
@@ -53,28 +58,44 @@ class AndroidSystemFontLoader(
             return false
         }
 
-        // Create a map for quick lookup
-        val fontFileMap = allFontFiles.associateBy { it.name }
+        // Try to find fonts matching the requested family name
+        val matchingFonts = findFontsForFamily(fontFamily, allFontFiles)
 
-        // Try priority fonts first - this ensures system defaults are used
-        for (fontName in priorityFontNames) {
-            fontFileMap[fontName]?.let { fontFile ->
+        if (matchingFonts.isNotEmpty()) {
+            // Try matching fonts first
+            for (fontFile in matchingFonts) {
                 try {
                     val success = asset.decode(fontFile.readBytes())
                     if (success) {
-                        Log.d(TAG, "Successfully loaded system font: ${fontFile.name}")
+                        Log.d(TAG, "Successfully loaded font: ${fontFile.name} for family: $fontFamily")
                         return true
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Failed to load font $fontName: ${e.message}")
+                    Log.w(TAG, "Failed to load font ${fontFile.name}: ${e.message}")
                 }
             }
         }
 
-        // If no priority fonts worked, try all remaining system fonts
-        for (fontFile in allFontFiles) {
-            if (fontFile.name in priorityFontNames) continue // Already tried
+        // If no matching font found by family name, fall back to locale-based priority font families
+        val priorityFontFamilies = getPriorityFontFamiliesForLocale(locale)
 
+        for (familyName in priorityFontFamilies) {
+            val priorityFonts = findFontsForFamily(familyName, allFontFiles)
+            for (fontFile in priorityFonts) {
+                try {
+                    val success = asset.decode(fontFile.readBytes())
+                    if (success) {
+                        Log.d(TAG, "Successfully loaded priority font: ${fontFile.name}")
+                        return true
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to load font ${fontFile.name}: ${e.message}")
+                }
+            }
+        }
+
+        // Last resort: try all remaining system fonts
+        for (fontFile in allFontFiles) {
             try {
                 val success = asset.decode(fontFile.readBytes())
                 if (success) {
@@ -87,76 +108,101 @@ class AndroidSystemFontLoader(
         }
 
         Log.w(TAG, "No suitable font found for asset among ${allFontFiles.size} system fonts")
-        // Return false to indicate this loader can't handle the asset
-        // The Rive runtime will try other loaders (e.g., CDN, embedded assets)
         return false
     }
 
     /**
-     * Returns priority font list based on locale, matching Android's system defaults
+     * Finds font files that match the requested font family name.
+     * Supports various font weight and style variants (Regular, Bold, Italic, etc.)
      */
-    private fun getPriorityFontsForLocale(locale: String): List<String> {
+    private fun findFontsForFamily(familyName: String, allFonts: Array<File>): List<File> {
+        val normalizedFamily = familyName.lowercase().replace(" ", "")
+
+        // Find all fonts that match the family name
+        return allFonts.filter { fontFile ->
+            val fileName = fontFile.nameWithoutExtension.lowercase().replace("-", "").replace(" ", "")
+            fileName.startsWith(normalizedFamily) || fileName.contains(normalizedFamily)
+        }.sortedWith(compareBy(
+            // Prioritize exact matches and common weights
+            { file ->
+                val name = file.nameWithoutExtension.lowercase()
+                when {
+                    name.contains("regular") -> 0
+                    name.contains("medium") -> 1
+                    name.contains("bold") -> 2
+                    name.contains("light") -> 3
+                    else -> 4
+                }
+            },
+            { it.name }
+        ))
+    }
+
+    /**
+     * Returns priority font family names based on locale, matching Android's system defaults
+     */
+    private fun getPriorityFontFamiliesForLocale(locale: String): List<String> {
         val normalizedLocale = locale.lowercase()
         return when {
             // Chinese Simplified
             normalizedLocale.startsWith("zh_cn") || normalizedLocale == "zh" -> listOf(
-                "NotoSansSC-Regular.otf",
-                "NotoSansCJK-Regular.ttc",
-                "DroidSansFallback.ttf",
-                "Roboto-Regular.ttf"
+                "NotoSansSC",
+                "NotoSansCJK",
+                "DroidSansFallback",
+                "Roboto"
             )
 
             // Chinese Traditional
             normalizedLocale.startsWith("zh_tw") || normalizedLocale.startsWith("zh_hk") -> listOf(
-                "NotoSansTC-Regular.otf",
-                "NotoSansHK-Regular.otf",
-                "NotoSansCJK-Regular.ttc",
-                "DroidSansFallback.ttf",
-                "Roboto-Regular.ttf"
+                "NotoSansTC",
+                "NotoSansHK",
+                "NotoSansCJK",
+                "DroidSansFallback",
+                "Roboto"
             )
 
             // Japanese
             normalizedLocale.startsWith("ja") -> listOf(
-                "NotoSansJP-Regular.otf",
-                "NotoSansCJK-Regular.ttc",
-                "DroidSansFallback.ttf",
-                "Roboto-Regular.ttf"
+                "NotoSansJP",
+                "NotoSansCJK",
+                "DroidSansFallback",
+                "Roboto"
             )
 
             // Korean
             normalizedLocale.startsWith("ko") -> listOf(
-                "NotoSansKR-Regular.otf",
-                "NotoSansCJK-Regular.ttc",
-                "DroidSansFallback.ttf",
-                "Roboto-Regular.ttf"
+                "NotoSansKR",
+                "NotoSansCJK",
+                "DroidSansFallback",
+                "Roboto"
             )
 
             // Arabic
             normalizedLocale.startsWith("ar") -> listOf(
-                "NotoSansArabic-Regular.ttf",
-                "NotoSansArabicUI-Regular.ttf",
-                "NotoNaskhArabic-Regular.ttf",
-                "NotoNaskhArabicUI-Regular.ttf",
-                "Roboto-Regular.ttf"
+                "NotoSansArabic",
+                "NotoSansArabicUI",
+                "NotoNaskhArabic",
+                "NotoNaskhArabicUI",
+                "Roboto"
             )
 
             // Thai
             normalizedLocale.startsWith("th") -> listOf(
-                "NotoSansThai-Regular.ttf",
-                "NotoSansThaiUI-Regular.ttf",
-                "Roboto-Regular.ttf"
+                "NotoSansThai",
+                "NotoSansThaiUI",
+                "Roboto"
             )
 
             // Russian (Cyrillic)
             normalizedLocale.startsWith("ru") -> listOf(
-                "Roboto-Regular.ttf",  // Roboto includes Cyrillic
-                "DroidSans.ttf"
+                "Roboto",  // Roboto includes Cyrillic
+                "DroidSans"
             )
 
             // Latin languages (en, de, fr, es, it, pt_BR, pt, tr, etc.)
             else -> listOf(
-                "Roboto-Regular.ttf",
-                "DroidSans.ttf"
+                "Roboto",
+                "DroidSans"
             )
         }
     }
