@@ -26,7 +26,7 @@ if (localPropertiesFile.exists()) {
 }
 
 group = "com.seekrtech"
-version = "0.0.6.8_alpha"
+version = "0.0.6.9_alpha"
 kotlin {
     androidTarget {
         publishLibraryVariants("release")
