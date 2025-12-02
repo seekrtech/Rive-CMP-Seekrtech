@@ -74,7 +74,7 @@ actual fun CustomRiveAnimation(
                 )
             }
             is RiveByteArrayCompositionSpec -> {
-                val animationController = remember(spec.byteArray, autoPlay, artboardName, fit, stateMachineName, alignment) {
+                val animationController = remember(spec.byteArray, autoPlay, artboardName, fit, stateMachineName, alignment, assetLoader) {
                     val controller = RiveAnimationController()
 
                     // Convert ByteArray to NSData
@@ -85,6 +85,10 @@ actual fun CustomRiveAnimation(
                         )
                     }
 
+                    // Use custom loader if provided (it's already a Swift closure from createSystemFontLoader)
+                    @Suppress("UNCHECKED_CAST")
+                    val customLoader = assetLoader as? Function3<Any?, Any?, Any?, Boolean>
+
                     controller.setAnimationItemWithData(
                         data = nsData,
                         autoPlay = autoPlay,
@@ -92,7 +96,7 @@ actual fun CustomRiveAnimation(
                         stateMachineName = stateMachineName,
                         fit = fit.toIosFit(),
                         alignment = alignment.toIosAlignment(),
-                        customLoader = null
+                        customLoader = customLoader
                     )
                     composition.connectToAnimationView(controller)
                     controller
@@ -219,13 +223,9 @@ actual fun CustomRiveAnimation(
             )
         }
 
-        // Use custom loader if provided, otherwise use default system font loader
-        val customLoader = (assetLoader as? Function3<*, *, *, *>)?.let { loader ->
-            { asset: Any?, data: Any?, factory: Any? ->
-                @Suppress("UNCHECKED_CAST")
-                (loader as Function3<Any?, Any?, Any?, Boolean>)(asset, data, factory)
-            }
-        } ?: nativeIosShared.RiveAnimationController.createSystemFontLoader()
+        // Use custom loader if provided (it's already a Swift closure from createSystemFontLoader)
+        @Suppress("UNCHECKED_CAST")
+        val customLoader = assetLoader as? Function3<Any?, Any?, Any?, Boolean>
 
         controller.setAnimationItemWithData(
             data = nsData,
